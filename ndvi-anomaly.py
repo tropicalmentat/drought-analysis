@@ -7,38 +7,48 @@ __author__ = 'G Torres'
 
 import gdal
 from gdalconst import *
+import numpy as np
 
-def compute_anomaly(indir):
+def compute_average(indir):
 
     gdal.AllRegister()
 
-    tif_list = glob.glob(indir+'\*.TIFF')
+    raster = gdal.Open(indir, GA_ReadOnly)
+    driver = raster.GetDriver()
+    cols = raster.RasterXSize
+    rows = raster.RasterYSize
+    projection = raster.GetProjection()
+    geotrans = raster.GetGeoTransform()
+    band_total = raster.RasterCount
 
-    array_stack = None
+    # iterate each band and build a list of arrays
+    array_list = []
+    for i in range(1, band_total):
+        band = raster.GetRasterBand(1)
+        array_list.append(band.ReadAsArray(0, 0, cols, rows))
 
-    for i in tif_list:
+    array_stack = np.dstack(array_list)  # build stack of arrays
 
-        raster = gdal.Open(f, GA_ReadOnly)
-        cols = self.raster.RasterXSize
-        rows = self.raster.RasterYSize
-        projection = self.raster.GetProjection()
-        geotrans = self.raster.GetGeoTransform()
-        band = self.raster.GetRasterBand(1)
-        data = band.ReadAsArray(0, 0, cols, rows)
+    ndvi_average = np.mean(array_stack, axis=2)  # compute climatological average
 
-        array_stack = (data)
+    # create new raster dataset to write average
 
-    return
+    out_raster = driver.Create('phil_ndvi_average.TIFF', cols, rows, 1, GDT_Float32)
+    out_band = out_raster.GetRasterBand(1)
+    out_band.WriteArray(ndvi_average,0 ,0)
+    out_raster.SetGeoTransform(geotrans)
+    out_raster.SetProjection(projection)
+    out_band.FlushCache()
+
+    return ndvi_average
+
 
 
 def main():
-    #call(["ls", "-l"])
-    in_folder = "C:\Users\G Torres\Desktop"
-    out_folder = "C:\Users\G Torres\Desktop\\ndvi_clip\\"
-    clip_shp = "C:\Users\G Torres\Desktop\\ndvi_test\\phil_extent.shp"
 
-    os.chdir(in_folder)
-    clip(in_folder, out_folder)
+    in_folder = "D:\LUIGI\EMERGENCY OBSERVATION\\2016_ELNINYO_DROUGHT\NDVI\clip_ndvi.TIFF"
+
+    print compute_average(in_folder)
 
 if __name__ == "__main__":
     main()
