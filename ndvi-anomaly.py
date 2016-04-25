@@ -8,6 +8,7 @@ __author__ = 'G Torres'
 import gdal
 from gdalconst import *
 import numpy as np
+import numpy.ma as ma
 
 def compute_average(indir):
 
@@ -29,13 +30,18 @@ def compute_average(indir):
 
     array_stack = np.dstack(array_list)  # build stack of arrays
 
-    ndvi_average = np.mean(array_stack, axis=2)  # compute climatological average
+    mask = np.greater(array_stack, 100)
+
+    mask_ndvi = ma.array(array_stack, mask=mask)
+
+    ndvi_average = np.mean(mask_ndvi, axis=2)  # compute climatological average
 
     # create new raster dataset to write average
 
     out_raster = driver.Create('phil_ndvi_average.TIFF', cols, rows, 1, GDT_Float32)
     out_band = out_raster.GetRasterBand(1)
     out_band.WriteArray(ndvi_average,0 ,0)
+    out_band.SetNoDataValue(-99)
     out_raster.SetGeoTransform(geotrans)
     out_raster.SetProjection(projection)
     out_band.FlushCache()
