@@ -8,40 +8,37 @@ __author__ = 'G Torres'
 import gdal
 from gdalconst import *
 
-
-def clip(indir, outdir, clpr):
-    import glob
-    import os
-    from subprocess import call
-
-    tif_list = glob.glob(indir+'\*.TIFF')
-
-    for f in tif_list:
-        (path_name, raster_name) = os.path.split(f)
-        print 'clipping ' + raster_name
-        out_raster = outdir + 'clip_' + raster_name
-        warp = 'gdalwarp -dstnodata 0 -q -cutline %s -crop_to_cutline of GTiff %s %s' % (clpr, f, out_raster)
-
-        call(warp)
-
-
-def compute_anomaly():
+def compute_anomaly(indir):
 
     gdal.AllRegister()
 
-    self.raster = gdal.Open(f, GA_ReadOnly)
-    self.cols = self.raster.RasterXSize
-    self.rows = self.raster.RasterYSize
-    self.projection = self.raster.GetProjection()
-    self.geotrans = self.raster.GetGeoTransform()
-    self.band = self.raster.GetRasterBand(1)
+    tif_list = glob.glob(indir+'\*.TIFF')
+
+    array_stack = None
+
+    for i in tif_list:
+
+        raster = gdal.Open(f, GA_ReadOnly)
+        cols = self.raster.RasterXSize
+        rows = self.raster.RasterYSize
+        projection = self.raster.GetProjection()
+        geotrans = self.raster.GetGeoTransform()
+        band = self.raster.GetRasterBand(1)
+        data = band.ReadAsArray(0, 0, cols, rows)
+
+        array_stack = (data)
+
+    return
+
 
 def main():
-    in_folder = "C:\Users\G Torres\Desktop\\ndvi_test"
+    #call(["ls", "-l"])
+    in_folder = "C:\Users\G Torres\Desktop"
     out_folder = "C:\Users\G Torres\Desktop\\ndvi_clip\\"
-    clip_shp = "C:\Users\G Torres\Desktop\\ndvi\\phil_extent.shp"
+    clip_shp = "C:\Users\G Torres\Desktop\\ndvi_test\\phil_extent.shp"
 
-    clip(in_folder, out_folder, clip_shp)
+    os.chdir(in_folder)
+    clip(in_folder, out_folder)
 
 if __name__ == "__main__":
     main()
