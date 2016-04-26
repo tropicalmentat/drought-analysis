@@ -86,33 +86,32 @@ def compute_anomaly(avg, vari):
 
     # compute anomaly for each data-set
     for ds in var_list:
-        if 'clip' in ds:
-            path, fn = os.path.split(ds)
-            variable = gdal.Open(ds, GA_ReadOnly)
-            var_cols = variable.RasterXSize
-            var_rows = variable.RasterYSize
-            #band_total = variable.RasterCount
-            var_band = variable.GetRasterBand(1
-                                              )
-            var_ds = var_band.ReadAsArray(0, 0, var_cols, var_rows)
+        path, fn = os.path.split(ds)
+        variable = gdal.Open(ds, GA_ReadOnly)
+        var_cols = variable.RasterXSize
+        var_rows = variable.RasterYSize
+        #band_total = variable.RasterCount
+        var_band = variable.GetRasterBand(1
+                                          )
+        var_ds = var_band.ReadAsArray(0, 0, var_cols, var_rows)
 
-            mask = np.greater(var_ds, 2)
+        mask = np.greater(var_ds, 10)
 
-            var_mask = ma.array(var_ds, mask=mask)
+        anom_mask = ma.array(var_ds, mask=mask)
 
-            anom_ds = var_mask - avg_ds
+        anom_ds = anom_mask - avg_ds
 
-            # create new data-set for each computation
-            anom_fn = 'anom_' + fn
-            out_raster = avg_driver.Create(anom_fn, var_cols, var_rows, 1, GDT_Float32)
-            out_band = out_raster.GetRasterBand(1)
-            out_band.WriteArray(anom_ds, 0, 0)
-            out_band.SetNoDataValue(-99)
-            out_raster.SetGeoTransform(avg_gt)
-            out_raster.SetProjection(avg_proj)
-            out_band.FlushCache()
-        else:
-            pass
+        print anom_ds
+        # create new data-set for each computation
+        anom_fn = 'anom_' + fn
+        out_raster = avg_driver.Create(anom_fn, var_cols, var_rows, 1, GDT_Float32)
+        out_band = out_raster.GetRasterBand(1)
+        out_band.WriteArray(anom_ds, 0, 0)
+        #out_band.SetNoDataValue(99999)
+        out_raster.SetGeoTransform(avg_gt)
+        out_raster.SetProjection(avg_proj)
+        out_band.FlushCache()
+
     return
 
 def main():
@@ -120,7 +119,7 @@ def main():
 
     avg_dataset = "D:\LUIGI\EMERGENCY OBSERVATION\\2016_ELNINYO_DROUGHT\NDVI\phil_ndvi_average.TIFF"
 
-    anomalous_ds = "D:\LUIGI\EMERGENCY OBSERVATION\\2016_ELNINYO_DROUGHT\NDVI\\ndvi-2015-2016"
+    anomalous_ds = "D:\LUIGI\EMERGENCY OBSERVATION\\2016_ELNINYO_DROUGHT\NDVI\\ndvi clipped"
 
     clip_shp = "D:\LUIGI\EMERGENCY OBSERVATION\\2016_ELNINYO_DROUGHT\NDVI\\phil_extent.shp"
 
@@ -130,7 +129,7 @@ def main():
 
     print compute_anomaly(avg_dataset, anomalous_ds)
 
-    # print clip_raster(ndvi_anom, clip_shp)
+    #print clip_raster(ndvi_anom, clip_shp)
 
 
 if __name__ == "__main__":
