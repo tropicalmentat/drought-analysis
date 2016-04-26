@@ -13,17 +13,19 @@ def build_vrt(indir):
             print tif
 
     txt_list = "D:\LUIGI\EMERGENCY OBSERVATION\\2016_ELNINYO_DROUGHT\NDVI\\tif_list.txt"
-    ndvi_vrt = "D:\LUIGI\EMERGENCY OBSERVATION\\2016_ELNINYO_DROUGHT\NDVI\\ndvi.vrt"
+    ndvi_anom = "ndvi_anom.vrt"
 
-    vrt_make = 'gdalbuildvrt -separate -input_file_list %s %s' % (txt_list, ndvi_vrt)
+    vrt_make = ["gdalbuildvrt", "-separate", "-input_file_list", txt_list, ndvi_anom]
 
-    os.system(vrt_make)
-    
+    call(vrt_make)
+
+
 def main():
-    input_dir = "D:\LUIGI\EMERGENCY OBSERVATION\\2016_ELNINYO_DROUGHT\NDVI\\ndvi"
+    #input_dir = "D:\LUIGI\EMERGENCY OBSERVATION\\2016_ELNINYO_DROUGHT\NDVI\\ndvi"
     workspace = "D:\LUIGI\EMERGENCY OBSERVATION\\2016_ELNINYO_DROUGHT\NDVI"
+    anom_ds = "D:\LUIGI\EMERGENCY OBSERVATION\\2016_ELNINYO_DROUGHT\NDVI\\ndvi-2015-2016"
     os.chdir(workspace)
-    build_vrt(input_dir)
+    build_vrt(anom_ds)
 
     """
     with open('tif_list.txt', 'rb') as f:
