@@ -127,7 +127,7 @@ def main():
 
     # print compute_average(in_folder)
 
-    print compute_anomaly(avg_dataset, anomalous_ds)
+    #print compute_anomaly(avg_dataset, anomalous_ds)
 
     #print clip_raster(ndvi_anom, clip_shp)
 
