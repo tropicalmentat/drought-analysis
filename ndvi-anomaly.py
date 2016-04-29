@@ -16,24 +16,57 @@ from subprocess import call
 gdal.AllRegister()
 
 
-def clip_raster(indir, shp):
-    raster_list = glob.glob(indir + '\*.TIFF')
-    shp_clip = shp
+def build_vrt(indir, outdir):
+    tif_list = glob.glob(indir+'\*.TIFF')
+    with open(outdir+'\\tif_list.txt', 'wb') as f:
+        for fn in tif_list:
+            path, name = os.path.split(fn)
+            if '2000' in name:
+                pass
+            elif '2011' in name:
+                pass
+            elif '2012' in name:
+                pass
+            elif '2013' in name:
+                pass
+            elif '2014' in name:
+                pass
+            elif '2015' in name:
+                pass
+            elif '2016' in name:
+                pass
+            else:
+                print fn
+                f.writelines(fn+'\n')
 
-    for ds in raster_list:
-        path, fn = os.path.split(ds)
-        clipped = 'clip_' + fn
-        clip_cmd = ['gdalwarp', '-srcnodata', '-99', '-cutline', shp_clip,
-                    '-crop_to_cutline', ds, clipped]
-        call(clip_cmd)
+
+    list_dir = glob.glob(outdir+'\*.txt')
+    print '\nfound %s in %s' % (list_dir[0], outdir)
+    print '\nbuilding vrt...'
+    ndvi_anom = outdir+"\\ndvi_2001-2010.vrt"
+
+    vrt_make = ["gdalbuildvrt", "-separate", "-input_file_list", list_dir[0], ndvi_anom]
+
+    call(vrt_make)
+    return
+
+
+def clip_raster(fn, shp, outdir):
+
+    path, name = os.path.split(fn)
+    print '\nclipping ' + name + ' to ' + outdir
+    clipped = outdir+'\clip_' + name.split('.')[0] + '.TIFF'
+    clip_cmd = ['gdalwarp', '-srcnodata', '-99', '-cutline', shp,
+                '-crop_to_cutline', fn, clipped]
+    call(clip_cmd)
 
     return
 
-        # return raster_list
 
-
-def compute_average(indir):
-    raster = gdal.Open(indir, GA_ReadOnly)
+def compute_mean(fn, wrkspc):
+    """Computes the mean of a data-set time-stack.
+    Returns .TIFF of mean array"""
+    raster = gdal.Open(fn, GA_ReadOnly)
     driver = raster.GetDriver()
     cols = raster.RasterXSize
     rows = raster.RasterYSize
@@ -43,12 +76,14 @@ def compute_average(indir):
 
     # iterate each band and build a list of arrays
     array_list = []
+    print '\nbuilding array stack...'
     for i in range(1, band_total):
         band = raster.GetRasterBand(1)
         array_list.append(band.ReadAsArray(0, 0, cols, rows))
 
     array_stack = np.dstack(array_list)  # build stack of arrays
 
+    print '\ncomputing mean...'
     mask = np.greater(array_stack, 100)  # build mask for no-data values
 
     mask_ndvi = ma.array(array_stack, mask=mask)  # apply mask
@@ -56,18 +91,19 @@ def compute_average(indir):
     ndvi_average = np.mean(mask_ndvi, axis=2)  # compute climatological average
 
     # create new raster dataset to write average ndvi
-    out_raster = driver.Create('phil_ndvi_average.TIFF', cols, rows, 1, GDT_Float32)
+    print '\nwriting output to .TIFF...'
+    out_raster = driver.Create(wrkspc+'\\phil_ndvi_mean.TIFF', cols, rows, 1, GDT_Float32)
     out_band = out_raster.GetRasterBand(1)
     out_band.WriteArray(ndvi_average, 0, 0)
-    out_band.SetNoDataValue(-99)
+    #out_band.SetNoDataValue(-99)
     out_raster.SetGeoTransform(geotrans)
     out_raster.SetProjection(projection)
     out_band.FlushCache()
 
-    return ndvi_average
+    return
 
 
-def compute_anomaly(avg, vari):
+def compute_anomaly(avg, vari, outdir):
     # open climatological average data-set
     average = gdal.Open(avg, GA_ReadOnly)
 
@@ -101,9 +137,9 @@ def compute_anomaly(avg, vari):
 
         anom_ds = anom_mask - avg_ds
 
-        print anom_ds
         # create new data-set for each computation
-        anom_fn = 'anom_' + fn
+        anom_fn = outdir + '\\2anom_' + fn
+        print '\nsaving to %s' % anom_fn
         out_raster = avg_driver.Create(anom_fn, var_cols, var_rows, 1, GDT_Float32)
         out_band = out_raster.GetRasterBand(1)
         out_band.WriteArray(anom_ds, 0, 0)
@@ -115,22 +151,42 @@ def compute_anomaly(avg, vari):
     return
 
 def main():
-    in_folder = "D:\LUIGI\EMERGENCY OBSERVATION\\2016_ELNINYO_DROUGHT\NDVI\clip_ndvi.TIF"
 
-    avg_dataset = "D:\LUIGI\EMERGENCY OBSERVATION\\2016_ELNINYO_DROUGHT\NDVI\phil_ndvi_average.TIFF"
-
-    anomalous_ds = "D:\LUIGI\EMERGENCY OBSERVATION\\2016_ELNINYO_DROUGHT\NDVI\\ndvi clipped"
-
+    work_space = "D:\LUIGI\EMERGENCY OBSERVATION\\2016_ELNINYO_DROUGHT\NDVI"
+    in_folder = "D:\LUIGI\EMERGENCY OBSERVATION\\2016_ELNINYO_DROUGHT\NDVI\\ndvi"
     clip_shp = "D:\LUIGI\EMERGENCY OBSERVATION\\2016_ELNINYO_DROUGHT\NDVI\\phil_extent.shp"
+    ndvi_clip = "D:\LUIGI\EMERGENCY OBSERVATION\\2016_ELNINYO_DROUGHT\NDVI\\ndvi clipped"
+    ndvi_anom = "D:\LUIGI\EMERGENCY OBSERVATION\\2016_ELNINYO_DROUGHT\NDVI\\ndvi anomalies"
 
-    ndvi_anom = "D:\LUIGI\EMERGENCY OBSERVATION\\2016_ELNINYO_DROUGHT\NDVI\\ndvi-2015-2016"
+    """
+    print build_vrt(in_folder, work_space)
 
-    # print compute_average(in_folder)
+    vrt = glob.glob(work_space+'\*.vrt')[0]
+    print clip_raster(vrt, clip_shp, work_space)
 
-    #print compute_anomaly(avg_dataset, anomalous_ds)
+    clipped = glob.glob(work_space+'\*.TIFF')
 
-    #print clip_raster(ndvi_anom, clip_shp)
+    for f in clipped:
+        if 'clip' in f:
+            print compute_mean(f, work_space)
+
+    clip_anom = glob.glob(in_folder+'\*TIFF')
+    for anom_ds in clip_anom:
+        path, name = os.path.split(anom_ds)
+        if '2015' in name or '2016' in name:
+            print clip_raster(anom_ds, clip_shp, ndvi_clip)
+
+    """
+    mean_ds = glob.glob(work_space+'\*.TIFF')
+    for f in mean_ds:
+        if 'mean' in f:
+            compute_anomaly(f, ndvi_clip, ndvi_anom)
 
 
 if __name__ == "__main__":
+    # pseudo code
+    # build vrt of data-sets from 2000-2010
+    # clip vrt to philippine extent
+    # clip data-sets from 2015-2016
+    # compute anomaly
     main()
