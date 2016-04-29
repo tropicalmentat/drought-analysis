@@ -70,6 +70,7 @@ def collect_pixels(fn, r_dir):
 
     return
 
+# TODO: Fix map to pixel coordinate conversion
 
 def main():
     loc_csv = "D:\LUIGI\EMERGENCY OBSERVATION\\2016_ELNINYO_DROUGHT\LAND SURFACE TEMP\stations.csv"
